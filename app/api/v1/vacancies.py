@@ -12,15 +12,10 @@ from app.crud.vacancy import (
     list_vacancies,
     update_vacancy,
 )
-from app.db.session import async_session_maker
+from app.db.session import get_session
 from app.schemas.vacancy import VacancyCreate, VacancyRead, VacancyUpdate
 
 router = APIRouter(prefix="/vacancies", tags=["vacancies"])
-
-
-async def get_session() -> AsyncSession:
-    async with async_session_maker() as session:
-        yield session
 
 
 @router.get("/", response_model=List[VacancyRead])
@@ -49,9 +44,9 @@ async def create_vacancy_endpoint(
     if payload.external_id is not None:
         existing = await get_vacancy_by_external_id(session, payload.external_id)
         if existing:
-            return JSONResponse(
-                status_code=status.HTTP_200_OK,
-                content={"detail": "Vacancy with external_id already exists"},
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Vacancy with external_id already exists"
             )
     return await create_vacancy(session, payload)
 
