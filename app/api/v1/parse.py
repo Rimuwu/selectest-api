@@ -1,15 +1,10 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.session import async_session_maker
+from app.db.session import get_session
 from app.services.parser import parse_and_store
 
 router = APIRouter(prefix="/parse", tags=["parser"])
-
-
-async def get_session() -> AsyncSession:
-    async with async_session_maker() as session:
-        yield session
 
 
 @router.post("/")

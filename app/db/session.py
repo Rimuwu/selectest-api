@@ -8,3 +8,8 @@ async_session_maker = async_sessionmaker(
     class_=AsyncSession,
     expire_on_commit=False,
 )
+
+
+async def get_session() -> AsyncSession:
+    async with async_session_maker() as session:
+        yield session
