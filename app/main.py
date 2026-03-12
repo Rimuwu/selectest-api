@@ -10,7 +10,25 @@ from app.services.scheduler import create_scheduler
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Selectel Vacancies API")
+
+async def lifespan(app: FastAPI):
+    logger.info("Запуск приложения")
+    await _run_parse_job()
+    global _scheduler
+
+    _scheduler = create_scheduler(_run_parse_job)
+    _scheduler.start()
+
+    yield
+
+    logger.info("Остановка приложения")
+    if _scheduler:
+        _scheduler.shutdown(wait=False)
+
+
+app = FastAPI(title="Selectel Vacancies API",
+              lifespan=lifespan
+              )
 app.include_router(api_router)
 
 setup_logging()
@@ -26,17 +44,3 @@ async def _run_parse_job() -> None:
         logger.exception("Ошибка фонового парсинга: %s", exc)
 
 
-@app.on_event("startup")
-async def on_startup() -> None:
-    logger.info("Запуск приложения")
-    await _run_parse_job()
-    global _scheduler
-    _scheduler = create_scheduler(_run_parse_job)
-    _scheduler.start()
-
-
-@app.on_event("shutdown")
-async def on_shutdown() -> None:
-    logger.info("Остановка приложения")
-    if _scheduler:
-        _scheduler.shutdown(wait=False)
