@@ -32,7 +32,7 @@ class ExternalVacancyItem(BaseModel):
 
 
 class ExternalVacanciesResponse(BaseModel):
-    item_count: int = Field(alias="item_count")
+    item_count: int
     items: List[ExternalVacancyItem]
     items_per_page: int
     page: int
