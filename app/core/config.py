@@ -1,5 +1,4 @@
 from typing import Optional
-from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -14,7 +13,7 @@ class Settings(BaseSettings):
     postgres_password: str
     postgres_db: str 
 
-    database_url: Optional[str] = None
+    database_url: str = ""
 
     log_level: str = "INFO"
     parse_schedule_minutes: int = 5
