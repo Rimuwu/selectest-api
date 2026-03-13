@@ -7,14 +7,19 @@ from app.core.logging import setup_logging
 from app.db.session import async_session_maker
 from app.services.parser import parse_and_store
 from app.services.scheduler import create_scheduler
+from fastapi.concurrency import asynccontextmanager
+
 
 logger = logging.getLogger(__name__)
+_scheduler = None
 
 
+@asynccontextmanager
 async def lifespan(app: FastAPI):
+    global _scheduler
+
     logger.info("Запуск приложения")
     await _run_parse_job()
-    global _scheduler
 
     _scheduler = create_scheduler(_run_parse_job)
     _scheduler.start()
@@ -33,8 +38,6 @@ app.include_router(api_router)
 
 setup_logging()
 
-_scheduler = None
-
 
 async def _run_parse_job() -> None:
     try:
@@ -42,5 +45,3 @@ async def _run_parse_job() -> None:
             await parse_and_store(session)
     except Exception as exc:
         logger.exception("Ошибка фонового парсинга: %s", exc)
-
-
