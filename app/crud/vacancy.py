@@ -62,27 +62,37 @@ async def delete_vacancy(session: AsyncSession, vacancy: Vacancy) -> None:
 async def upsert_external_vacancies(
     session: AsyncSession, payloads: Iterable[dict]
 ) -> int:
-    external_ids = [payload["external_id"] for payload in payloads if payload["external_id"]]
+    payload_list = list(payloads)
+    external_ids = [
+        payload.get("external_id")
+        for payload in payload_list
+        if payload.get("external_id") is not None
+    ]
+
+    existing_by_external_id: dict[int, Vacancy] = {}
     if external_ids:
         existing_result = await session.execute(
-            select(Vacancy.external_id).where(Vacancy.external_id.in_(external_ids))
+            select(Vacancy).where(Vacancy.external_id.in_(external_ids))
         )
-        existing_ids = set(existing_result.scalars().all())
-    else:
-        existing_ids = {}
+        existing_by_external_id = {
+            vacancy.external_id: vacancy
+            for vacancy in existing_result.scalars().all()
+            if vacancy.external_id is not None
+        }
 
     created_count = 0
-    for payload in payloads:
-        ext_id = payload["external_id"]
-        if ext_id and ext_id in existing_ids:
-            result = await session.execute(
-                select(Vacancy).where(Vacancy.external_id == ext_id)
-            )
-            vacancy = result.scalar_one()
+    for payload in payload_list:
+        ext_id = payload.get("external_id")
+        vacancy = existing_by_external_id.get(ext_id) if ext_id is not None else None
+
+        if vacancy is not None:
             for field, value in payload.items():
                 setattr(vacancy, field, value)
         else:
-            session.add(Vacancy(**payload))
+            new_vacancy = Vacancy(**payload)
+            session.add(new_vacancy)
+            if ext_id is not None:
+                existing_by_external_id[ext_id] = new_vacancy
             created_count += 1
 
     await session.commit()
